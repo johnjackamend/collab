@@ -12,6 +12,7 @@ import MediaPlayer
 import Firebase
 import OneSignal
 import CMPageControl
+import CoreLocation
 
 class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableCardContainerDataSource,NPAudioStreamDelegate,reloadPageDelegate {
 
@@ -22,6 +23,7 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     var distance = Int()
     var isLastProfile = Bool()
 
+    @IBOutlet weak var btnChat: UIButton!
 
     var infoView = InfoView()
     var filteredData = NSArray()
@@ -29,11 +31,15 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     let pulsator = Pulsator()
     var isPlaying = Bool()
     var audioStream : NPAudioStream = NPAudioStream()
-    let container = YSLDraggableCardContainer()
+    
+    @IBOutlet weak var container : YSLDraggableCardContainer! // = YSLDraggableCardContainer()
+    
     var userImage = String()
     var userName = String()
     var chatModel = Chat()
     var noInternetView = NoInternetView()
+    var isFakeProfiles = Bool()
+
 
     @IBOutlet var viewCanAgain: UIView!
     @IBOutlet var viewStartChat: UIView!
@@ -48,6 +54,8 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     @IBOutlet weak var cltnSharedFollowers: UICollectionView!
     var userChatID = String()
 
+    let heightCalculated: CGFloat = UIScreen.main.bounds.size.width
+    
 
     //MARK:
     //MARK: Outlet Connections PopUp View
@@ -62,10 +70,14 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     //MARK: UIView Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        distance = 50
+        self.btnChat.isHidden = false
+        distance = 8000
+        isFakeProfiles = false
         isLastProfile = false
         noInternetView = Bundle.main.loadNibNamed("NoInternetView", owner: self, options: nil)?[0] as! NoInternetView
         noInternetView.delegate = self
+        
+        //Thread.detachNewThreadSelector(#selector(HomeVC.getFriends), toTarget: self, with: nil)
 
     }
     override func viewWillAppear(_ animated: Bool) {
@@ -80,7 +92,11 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
             self.navigationController?.navigationBar.isHidden = true
             self.view.backgroundColor = UIColor.cyan
 
-            container.frame = CGRect.init(x: 0, y: 64, width: self.view.frame.size.width, height: self.view.frame.size.height-64)
+//            container.frame = CGRect.init(x: 0, y: 64, width: self.view.frame.size.width, height: self.view.frame.size.height-64)
+            
+            
+            //container.frame = CGRect.init(x: 0, y: 64, width: UIScreen.main.bounds.size.width, height:heightCalculated)
+            
             container.backgroundColor = UIColor.clear
 
             container.dataSource = self
@@ -91,22 +107,36 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
             pulsator.numPulse = 3
             pulsator.backgroundColor =  UIColor(red: 192.0/255.0, green: 135.0/255.0, blue: 51.0/255.0, alpha: 1.0).cgColor
             pulsator.radius = ScreenSize.SCREEN_WIDTH/2
-            self.view.addSubview(container)
+            //self.view.addSubview(container)
             container.isHidden = true
 
             isPlaying = false
 
             viewCanAgain.frame = CGRect.init(x: 0, y: 64, width: self.view.frame.size.width, height: self.view.frame.size.height - 64)
+            
+            
             self.view.addSubview(viewCanAgain)
             viewCanAgain.isHidden = true
 
             viewStartChat.frame = CGRect.init(x: 0, y: 64, width: self.view.frame.size.width, height: self.view.frame.size.height - 64)
+            
+            
             self.view.addSubview(viewStartChat)
             viewStartChat.isHidden = true
+            
             popUpView.frame = CGRect.init(x: 0, y: ScreenSize.SCREEN_HEIGHT, width: self.view.frame.size.width, height: popUpView.frame.size.height - 64)
+            
+            
             self.view.addSubview(popUpView)
+            
             popUpView.isHidden = true
-            self.getFilteredData(distanceInt: distance)
+
+            if UserDefaults.SFSDefault(boolForKey: kIsFirstTime) == true {
+                self.getTopEightData()
+            }
+            else{
+                self.getFilteredData(distanceInt: distance)
+            }
         }
     }
     override func didReceiveMemoryWarning() {
@@ -116,9 +146,14 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
 
     //MARK:
     //MARK:Webservices Methods
-
+  
     func getFilteredData(distanceInt : Int) {
-        pulsator.start()
+        
+        if pulsator.isPulsating == false {
+            pulsator.start()
+        }
+        
+        
         AppManager.sharedInstance.showHud(showInView: self.view, label: "")
         let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id"),
                                 "distance" :distanceInt ]
@@ -128,21 +163,28 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
             AppManager.sharedInstance.hidHud()
             print(jsonResult)
             if jsonResult["success"] as! NSNumber == 1{
+                self.pulsator.stop()
                 let dataArray = NSArray.init(object: jsonResult["user_data"]!)
                 self.filteredData = dataArray[0] as! NSArray
                 self.pulsator.stop()
                 self.container.isHidden = false
                 self.container.reload()
             }
+            else if jsonResult["success"] as! NSNumber == 101{
+              self.pulsator.stop()
+                UserDefaults.SFSDefault(setBool: true, forKey: kLocationIsOff)
+                AppManager.sharedInstance.callAlert(view: self, headerString: DENIED_LOCATION_HEADER, messageString: DENIED_LOCATION_MESSAGE)
+            }
             else{
-               self.pulsator.stop()
-                if self.distance < 7000{
-                    self.distance = self.distance + 150
+                self.distance = distanceInt
+                if self.distance < 10000{
+                    self.distance = self.distance + 300
                     self.getFilteredData(distanceInt: self.distance)
                 }
                 else{
+                    self.pulsator.stop()
                     self.viewCanAgain.isHidden = false
-               }
+                }
             }
         }) { (error) in
             AppManager.sharedInstance.hidHud()
@@ -163,19 +205,24 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
 
     func getTopEightData() {
         pulsator.start()
+
         AppManager.sharedInstance.showHud(showInView: self.view, label: "")
         let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id")]
-        ServerManager.sharedInstance.httpPost(String(format:"%@get_top_users",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
+
+        ServerManager.sharedInstance.httpPost(String(format:"%@get_fake_users",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
             AppManager.sharedInstance.hidHud()
             var jsonResult = response as! Dictionary<String, Any>
             AppManager.sharedInstance.hidHud()
             print(jsonResult)
             if jsonResult["success"] as! NSNumber == 1{
+                self.isFakeProfiles = true
+                UserDefaults.SFSDefault(setBool: false, forKey: kIsFirstTime)
                 let dataArray = NSArray.init(object: jsonResult["user_data"]!)
                 self.filteredData = dataArray[0] as! NSArray
                 self.pulsator.stop()
                 self.container.isHidden = false
                 self.container.reload()
+                //self.getFilteredData(distanceInt: self.distance)
             }
             else{
                 self.pulsator.stop()
@@ -222,13 +269,6 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         let chatID = refChild.child(chatId)
 
         var unread_message = [Any]()
-        //        let senderDict : Dictionary = ["userName":myName,"userImage":myImage]
-        //        let recieverDict : Dictionary = ["userName":userName,"userImage":userImage]
-        //        let dict1 = [senderId:senderDict]
-        //        let dict2 = [receiverStr :recieverDict]
-        //
-        //
-        //        let userData : Array  = [dict1,dict2]
         for i in 0 ... 1 {
             var strUser = String()
             //   var strUnreadCount = String()
@@ -279,6 +319,7 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     //MARK:
     //MARK: Button Actions
     @IBAction func openSideMenu(_ sender: Any) {
+        self.btnPauseSongAction()
         self.menuContainerViewController.toggleLeftSideMenuCompletion {
         }
     }
@@ -353,7 +394,7 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     }
 
 
-    func rejectRequest(_sender: UIButton)  {
+    func rejectRequest(_ sender: UIButton)  {
         audioStream.pause()
         // infoView.btnPlayPause.setImage(UIImage.init(named: "play"), for: .normal)
         infoView.btnPlayPause.isSelected = false
@@ -361,36 +402,48 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         audioStream.seekToTime(inSeconds: 0)
         isPlaying = false
 
-        let dataDict = self.filteredData[_sender.tag] as! Dictionary<String, Any>
-
-        AppManager.sharedInstance.showHud(showInView: self.view, label: "")
-
-        let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id"),
-                                "friend_id" : dataDict["id"]!,
-                                "request_status": "0"]
-
-        ServerManager.sharedInstance.httpPost(String(format:"%@accept_deny_friendrequest",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
-            AppManager.sharedInstance.hidHud()
-            var jsonResult = response as! Dictionary<String, Any>
-            AppManager.sharedInstance.hidHud()
-            print(jsonResult)
-            if jsonResult["success"] as! NSNumber == 1{
-                AppManager.showMessageView(view: self.view, meassage: jsonResult["success_message"] as! String)
-                //self.getFilteredData()
-            }
-            else{
-                AppManager.showMessageView(view: self.view, meassage: jsonResult["error_message"] as! String)
-                // self.getFilteredData()
-            }
-        }) { (error) in
-            AppManager.sharedInstance.hidHud()
-            //self.getFilteredData()
-            AppManager.showMessageView(view: self.view, meassage: error.description)
+        if isFakeProfiles == false {
+            container.movePosition(with: .left, isAutomatic: false)
+            self.slideleft(tag: sender.tag)
         }
+        else{
+            container.movePosition(with: .left, isAutomatic: false)
+            if sender.tag == self.filteredData.count - 1 {
+                self.getFilteredData(distanceInt: distance)
+                isFakeProfiles = false
+            }
+        }
+
+//        let dataDict = self.filteredData[_sender.tag] as! Dictionary<String, Any>
+//
+//        AppManager.sharedInstance.showHud(showInView: self.view, label: "")
+//
+//        let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id"),
+//                                "friend_id" : dataDict["id"]!,
+//                                "request_status": "0"]
+//
+//        ServerManager.sharedInstance.httpPost(String(format:"%@accept_deny_friendrequest",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
+//            AppManager.sharedInstance.hidHud()
+//            var jsonResult = response as! Dictionary<String, Any>
+//            AppManager.sharedInstance.hidHud()
+//            print(jsonResult)
+//            if jsonResult["success"] as! NSNumber == 1{
+//                AppManager.showMessageView(view: self.view, meassage: jsonResult["success_message"] as! String)
+//                //self.getFilteredData()
+//            }
+//            else{
+//                AppManager.showMessageView(view: self.view, meassage: jsonResult["error_message"] as! String)
+//                // self.getFilteredData()
+//            }
+//        }) { (error) in
+//            AppManager.sharedInstance.hidHud()
+//            //self.getFilteredData()
+//            AppManager.showMessageView(view: self.view, meassage: error.description)
+//        }
 
 
     }
-    func acceptRequest(_sender: UIButton)  {
+    func acceptRequest(_ sender: UIButton)  {
         audioStream.pause()
         // infoView.btnPlayPause.setImage(UIImage.init(named: "play"), for: .normal)
         infoView.btnPlayPause.isSelected = false
@@ -398,39 +451,63 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         audioStream.seekToTime(inSeconds: 0)
         isPlaying = false
 
-        let dataDict = self.filteredData[_sender.tag] as! Dictionary<String, Any>
-
-        AppManager.sharedInstance.showHud(showInView: self.view, label: "")
-
-        let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id"),
-                                "friend_id" : dataDict["id"]!,
-                                "request_status": "1"]
-
-        ServerManager.sharedInstance.httpPost(String(format:"%@accept_deny_friendrequest",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
-            AppManager.sharedInstance.hidHud()
-            var jsonResult = response as! Dictionary<String, Any>
-            AppManager.sharedInstance.hidHud()
-            print(jsonResult)
-            if jsonResult["success"] as! NSNumber == 1{
-
-                let data = jsonResult["data_type"] as? [String : Any] ?? [:]
-                self.setStartChatView()
-                self.initateChatWithUser(dict: data)
-            }
-            else{
-                AppManager.showMessageView(view: self.view, meassage: jsonResult["error_message"] as! String)
-            }
-        }) { (error) in
-            AppManager.sharedInstance.hidHud()
-            AppManager.showMessageView(view: self.view, meassage: error.description)
+        if isFakeProfiles == false {
+            let dataDict = self.filteredData[sender.tag] as! Dictionary<String, Any>
+            userImage = dataDict["profile_pic"] as! String
+            userName = dataDict["full_name"] as! String
+            container.movePosition(with: .right, isAutomatic: false)
+            self.slideRight(tag: sender.tag)
         }
+        else{
+            container.movePosition(with: .right, isAutomatic: false)
+            if sender.tag == self.filteredData.count - 1 {
+                self.getFilteredData(distanceInt: distance)
+                isFakeProfiles = false
+            }
+        }
+
+//        let dataDict = self.filteredData[_sender.tag] as! Dictionary<String, Any>
+//
+//        AppManager.sharedInstance.showHud(showInView: self.view, label: "")
+//
+//        let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id"),
+//                                "friend_id" : dataDict["id"]!,
+//                                "request_status": "1"]
+//
+//        ServerManager.sharedInstance.httpPost(String(format:"%@accept_deny_friendrequest",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
+//            AppManager.sharedInstance.hidHud()
+//            var jsonResult = response as! Dictionary<String, Any>
+//            AppManager.sharedInstance.hidHud()
+//            print(jsonResult)
+//            if jsonResult["success"] as! NSNumber == 1{
+//
+//                let data = jsonResult["data_type"] as? [String : Any] ?? [:]
+//                self.setStartChatView()
+//                self.initateChatWithUser(dict: data)
+//            }
+//            else{
+//                AppManager.showMessageView(view: self.view, meassage: jsonResult["error_message"] as! String)
+//            }
+//        }) { (error) in
+//            AppManager.sharedInstance.hidHud()
+//            AppManager.showMessageView(view: self.view, meassage: error.description)
+//        }
     }
     func btnPlayPauseSong( btn: UIButton) {
         infoView.btnPlayPause = btn
         audioStream.delegate = self
         let dataDict = self.filteredData[btn.tag] as! Dictionary<String, Any>
 
-        let songUrl  = URL.init(string: dataDict["music_file_url"] as! String )
+        let getURL : String = dataDict["music_file_url"] as! String
+        
+//        let sUrl = "http://api.soundcloud.com/resolve.json?url=" + getURL + "?client_id=" + SOUND_CLOUD_CLIENT_ID
+        
+//        let sUrl = getURL + "?client_id=" + SOUND_CLOUD_CLIENT_ID
+        
+        let sUrl = getURL
+        
+        let songUrl  = URL.init(string: sUrl  )
+        
 
         if urlarray.count != 0 {
             urlarray.removeAllObjects()
@@ -456,8 +533,10 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     }
 
     func btnPauseSongAction()  {
-        audioStream.pause()
-        isPlaying = false
+        if audioStream.status == .playing {
+            audioStream.pause()
+            isPlaying = false
+        }
     }
 
     func viewInstaProfile(_sender: UIButton) {
@@ -498,14 +577,19 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     func cardContainerViewNextView(with index: Int) -> UIView! {
         let dataDict = self.filteredData[index] as! Dictionary<String, Any>
 
-        let view = CardView.init(frame: .init(x: 0, y: 0, width: self.view.frame.size.width , height: self.view.frame.size.height - 64 ))
+        let view = CardView.init(frame: .init(x: 0, y: 0, width: heightCalculated , height: heightCalculated))
 
         view.backgroundColor = UIColor.lightGray
 
         var imagesArray = [String]()
+//        imagesArray.append("https://scontent-dft4-2.cdninstagram.com/t51.2885-19//14156345_1097002337022043_11763453_a.jpg")
+//        imagesArray.append("https://scontent-dft4-2.cdninstagram.com/t51.2885-19//14156345_1097002337022043_11763453_a.jpg")
+//        imagesArray.append("https://scontent-dft4-2.cdninstagram.com/t51.2885-19//14156345_1097002337022043_11763453_a.jpg")
+        
         imagesArray.append(dataDict["image1"] as! String)
         imagesArray.append(dataDict["image2"] as! String)
         imagesArray.append(dataDict["profile_pic"] as! String)
+        
         view.scrollImages(imagesArray)
 
         infoView = Bundle.main.loadNibNamed("InfoView", owner: self, options: nil)?[0] as! InfoView
@@ -514,14 +598,20 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         let tapGesture = UITapGestureRecognizer.init(target: self, action: #selector(self.showPopUpView))
         infoView.addGestureRecognizer(tapGesture)
         infoView.tag = index
-        infoView.frame = CGRect.init(x: 0, y: self.view.frame.size.height - 64 - self.view.frame.size.height/3.0, width: self.view.frame.size.width, height: self.view.frame.size.height/3.0)
+        
+        let heightValue = UIScreen.main.bounds.size.height - (heightCalculated+64) ;
+        
+//        infoView.frame = CGRect.init(x: 0, y: self.view.frame.size.height - (64 + (self.view.frame.size.height/3.0)), width: self.view.frame.size.width, height: self.view.frame.size.height/3.0)
+        
+         infoView.frame = CGRect.init(x: 0, y: (UIScreen.main.bounds.size.width) , width: heightCalculated, height: heightValue)
 
-        let distanceFloat = Double(dataDict["distance"] as! String)
+        let distanceFloat = Float(dataDict["distance"] as! String)
 
 
-        let distance : String = String(format:"%d miles away",distanceFloat!)
+        let distance : String = String(format:"%.0f miles away",distanceFloat!)
 
-        infoView.lblDistance.text = distance
+        infoView.lblDistance.text = dataDict["bio"] as! String
+        infoView.lblDistance.textAlignment = .left
         infoView.lblUserName.text = "\(dataDict["full_name"]!)".capitalized
         print(dataDict)
 
@@ -538,17 +628,17 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         let instaName  = String(format:" @%@",dataDict["full_name"] as! String )
 
 
-        let category1 = dataDict["Industry"]
-        let category2 = dataDict["Musician"]
+        let category1 = dataDict["collab_with"] as! String
+        let category2:[String] = category1.components(separatedBy: ",")
 
-        if category1 != nil  &&  category2 != nil{
-            infoView.lblCategory.text = String(format : "%@ | %@",category1 as! CVarArg,category2 as! CVarArg)
+        if category2.count >= 2 {
+            infoView.lblCategory.text = String(format : "%@ | %@",category2[0] as CVarArg,category2[1] as CVarArg)
         }
-        else if category2 != nil && category1 == nil {
-            infoView.lblCategory.text = String(format : "%@",category2 as! CVarArg)
+        else if category2.count == 1 {
+            infoView.lblCategory.text = String(format : "%@",category2[0] as CVarArg)
         }
         else{
-            infoView.lblCategory.text = String(format : "%@",category1 as! CVarArg)
+            infoView.lblCategory.text = ""
         }
 
         infoView.btnInstaName.setTitle(instaName, for: .normal)
@@ -627,17 +717,39 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
 
     func cardContainerView(_ cardContainerView: YSLDraggableCardContainer!, didEndDraggingAt index: Int, draggableView: UIView!, draggableDirection: YSLDraggableDirection) {
 
+        self.btnPauseSongAction()
+        
         if draggableDirection == .left {
-            container.movePosition(with: draggableDirection, isAutomatic: false)
-            self.slideleft(tag: index)
+
+            if isFakeProfiles == false {
+                container.movePosition(with: draggableDirection, isAutomatic: false)
+                self.slideleft(tag: index)
+            }
+            else{
+                container.movePosition(with: draggableDirection, isAutomatic: false)
+                if index == self.filteredData.count - 1 {
+                    self.getFilteredData(distanceInt: distance)
+                    isFakeProfiles = false
+                }
+            }
+
         }
         if draggableDirection == .right {
-            let dataDict = self.filteredData[index] as! Dictionary<String, Any>
-            userImage = dataDict["profile_pic"] as! String
-            userName = dataDict["full_name"] as! String
-            container.movePosition(with: draggableDirection, isAutomatic: false)
-            self.slideRight(tag: index)
-        }
+            if isFakeProfiles == false {
+                let dataDict = self.filteredData[index] as! Dictionary<String, Any>
+                userImage = dataDict["profile_pic"] as! String
+                userName = dataDict["full_name"] as! String
+                container.movePosition(with: draggableDirection, isAutomatic: false)
+                self.slideRight(tag: index)
+            }
+            else{
+                container.movePosition(with: draggableDirection, isAutomatic: false)
+                if index == self.filteredData.count - 1 {
+                    self.getFilteredData(distanceInt: distance)
+                    isFakeProfiles = false
+                }
+            }
+}
         if draggableDirection == .up {
 
         }
@@ -645,12 +757,11 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
 
     func cardContainderView(_ cardContainderView: YSLDraggableCardContainer!, updatePositionWithDraggableView draggableView: UIView!, draggableDirection: YSLDraggableDirection, widthRatio: CGFloat, heightRatio: CGFloat) {
 
-        
+
     }
 
     func cardContainerViewDidCompleteAll(_ container: YSLDraggableCardContainer!) {
         isLastProfile = true
-
     }
 
 
@@ -677,13 +788,13 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         // let time =  CMTimeGetSeconds(currentTime)
         // lblDuration.text = String(format:"%.0f Seconds",time)
         // if time >= 15 {
-        audioStream.pause()
+        //audioStream.pause()
         // infoView.btnPlayPause.setImage(UIImage.init(named: "play"), for: .normal)
-        infoView.btnPlayPause.isSelected = false
-        infoView.btnPlayPause.setImage(#imageLiteral(resourceName: "play"), for: .normal)
-        audioStream.seekToTime(inSeconds: 0)
-        isPlaying = false
-        print("Stop Player")
+//        infoView.btnPlayPause.isSelected = false
+//        infoView.btnPlayPause.setImage(#imageLiteral(resourceName: "play"), for: .normal)
+//        audioStream.seekToTime(inSeconds: 0)
+//        isPlaying = false
+        print("Stop Player:\(currentTime.seconds)")
         //}
     }
     //MARK:
@@ -696,7 +807,7 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
             audioStream.seekToTime(inSeconds: 0)
             isPlaying = false
         }
-        popUpView.frame = CGRect.init(x: 0, y: ScreenSize.SCREEN_HEIGHT, width: ScreenSize.SCREEN_WIDTH, height: popUpView.frame.size.height)
+        popUpView.frame = CGRect.init(x: 0, y: ScreenSize.SCREEN_HEIGHT, width: ScreenSize.SCREEN_WIDTH, height: 176)
         let dataDict = self.filteredData[(sender.view?.tag)!] as! Dictionary<String, Any>
         lblAboutUser.text = "About \(dataDict["full_name"]!)".capitalized
         let category1 = dataDict["Industry"]
@@ -720,7 +831,7 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         btnPlaySongPopUpView.isSelected = false
         UIView.animate(withDuration: 0.25, delay: 0.0, options: [], animations: {
             self.popUpView.isHidden = false
-            self.popUpView.frame = CGRect.init(x: 0, y: ScreenSize.SCREEN_HEIGHT - self.popUpView.frame.size.height, width: ScreenSize.SCREEN_WIDTH, height: self.popUpView.frame.size.height)
+            self.popUpView.frame = CGRect.init(x: 0, y: ScreenSize.SCREEN_HEIGHT - 176, width: ScreenSize.SCREEN_WIDTH, height: 176)
         }, completion: { (finished: Bool) in
         })
     }
@@ -748,9 +859,12 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
     //MARK: Start Chat Methods
 
     @IBAction func goToChatControllerAction(_ sender: Any) {
+        self.btnPauseSongAction()
         let controller = self.storyboard?.instantiateViewController(withIdentifier: "ChatController") as! ChatController
         self.navigationController?.pushViewController(controller, animated: false)
     }
+    
+    
     func setStartChatView()  {
 
         ivMe.layer.cornerRadius = ivMe.frame.size.height/2.0
@@ -776,10 +890,10 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
 
     }
     @IBAction func keepSurfingAction(_ sender: Any) {
-         viewStartChat.isHidden = true
+        viewStartChat.isHidden = true
         if isLastProfile == true {
-            if distance < 7000 {
-                distance = distance + 150
+            if distance < 10000 {
+                distance = distance + 300
                 self.getFilteredData(distanceInt: distance)
             }
             else{
@@ -788,7 +902,7 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
 
         }
         else{
-        self.getFilteredData(distanceInt:distance )
+            self.getFilteredData(distanceInt:distance )
         }
     }
     func viewInstaProfilePopUp(_sender :UIButton)  {
@@ -873,8 +987,8 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
                 }
             }
         }
-    )
-}
+        )
+    }
 
     //MARK: No Internet delegate method
 
@@ -894,7 +1008,10 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
             if snapshot.value != nil{
                 print(snapshot.value!)
                 let user = snapshot.value as? [String : Any] ?? [:]
-                self.fireOneSignalNotification(playerId:user["player_id"] as! String, ChatId: chatID,frndId:friendID)
+                if let playerID = user["player_id"] {
+                    self.fireOneSignalNotification(playerId:playerID as! String, ChatId: chatID,frndId:friendID)
+                }
+                
             }
         })
     }
@@ -909,6 +1026,42 @@ class HomeVC: UIViewController, YSLDraggableCardContainerDelegate, YSLDraggableC
         }, onFailure: {error in
             print("error = \(error!)")
         })
+    }
+    
+    // MARK: get friends count
+    func getFriends() {
+        
+        let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id")]
+        ServerManager.sharedInstance.httpPost(String(format:"%@get_friends",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
+            
+            var jsonResult = response as! Dictionary<String, Any>
+            
+            print(jsonResult)
+            
+            OperationQueue.main.addOperation {
+                //
+                if jsonResult["success"] as! NSNumber == 1{
+                    UserDefaults.standard.set(true, forKey: "friends_count")
+                    UserDefaults.standard.synchronize()
+                     self.btnChat.isHidden = false
+                }
+                else{
+                    UserDefaults.standard.set(false, forKey: "friends_count")
+                    UserDefaults.standard.synchronize()
+                     self.btnChat.isHidden = true
+                }
+                //
+            }
+        }) { (error) in
+            AppManager.sharedInstance.hidHud()
+            if AppManager.isInternetError(error) == true  {
+                
+                
+            }
+            else{
+               
+            }
+        }
     }
     
 }

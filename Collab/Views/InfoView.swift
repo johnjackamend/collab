@@ -19,4 +19,15 @@ class InfoView: UIView {
    
     @IBOutlet var lblDistance: UILabel!
     @IBOutlet var btnInstaName: UIButton!
+    
+    
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        //self.layer.frame = self.bounds
+    }
+    
+    
+    
 }

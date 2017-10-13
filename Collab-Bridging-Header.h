@@ -24,3 +24,4 @@
 #import "HPGrowingTextView.h"
 #import "HPTextViewInternal.h"
 #import "HDNotificationView.h"
+#import "SCLAlertView.h"

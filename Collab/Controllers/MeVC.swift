@@ -12,6 +12,7 @@ import Firebase
 
 class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavigationControllerDelegate ,NPAudioStreamDelegate,UIGestureRecognizerDelegate,UITextFieldDelegate,MBProgressHUDDelegate{
     
+    @IBOutlet weak var btnMusic: UIButton!
     var HUD : MBProgressHUD!
     @IBOutlet weak var btnPlayPause: UIButton!
     @IBOutlet var tfDatePicker: UITextField!
@@ -78,8 +79,32 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
             let datePickerView:UIDatePicker = UIDatePicker()
             datePickerView.datePickerMode = UIDatePickerMode.date
             tfDatePicker.inputView = datePickerView
+            tfDatePicker.delegate = self
             datePickerView.addTarget(self, action: #selector(self.datePickerValueChanged), for: UIControlEvents.valueChanged)
         }
+        
+        tfEmail.delegate = self
+        
+        //draw border on textfields or on button
+        self.tfBio.layer.borderColor = UIColor.black.cgColor
+        self.tfBio.layer.borderWidth = 4.0
+        
+        self.tfDatePicker.layer.borderColor = UIColor.black.cgColor
+        self.tfDatePicker.layer.borderWidth = 4.0
+        
+        
+        let leftView1 = UIView.init(frame: CGRect.init(x: 0, y: 0, width: 10, height: 10))
+        let leftView2 = UIView.init(frame: CGRect.init(x: 0, y: 0, width: 10, height: 10))
+        
+        self.tfBio.leftView = leftView1
+        self.tfBio.leftViewMode = .always
+        
+        self.tfDatePicker.leftView = leftView2
+        self.tfDatePicker.leftViewMode = .always
+        
+        self.btnMusic.layer.borderColor = UIColor.black.cgColor
+        self.btnMusic.layer.borderWidth = 1.5
+        
     }
        override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(true)
@@ -149,7 +174,7 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
             AppManager.showMessageView(view: self.view, meassage: "Please upload all images")
             return
         }
-        if  lblSong.text!  == "" || lblSong.text!.isEmpty {
+        if  lblSong.text!  == "" || lblSong.text!.isEmpty || lblSong.text! == "Tap music to add song" {
             AppManager.showMessageView(view: self.view, meassage: "Please first add song")
             return
         }
@@ -164,7 +189,7 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
         if TYPE_CONTROLLER == controllerType.externalController {
             para = ["user_id":UserDefaults.SFSDefault(valueForKey: USER_ID),
                                     "bio":tfBio.text!,
-                                    "music_file_url":dataDict["songUrl"]! as! String,
+                                    "music_file_url":dataDict["songUrl"] ?? "" ,
                                     "music_file_name" : lblSong.text!,
                                     "email":tfEmail.text!,
                                     "gender" : gender]
@@ -173,7 +198,7 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
             if dataDict.allKeys.count != 0 {
                 para = ["user_id":UserDefaults.SFSDefault(valueForKey: USER_ID),
                         "bio":tfBio.text!,
-                        "music_file_url":dataDict["songUrl"]! as! String,
+                        "music_file_url":dataDict["songUrl"] ?? "",
                         "music_file_name" : lblSong.text!,
                         "dob" : dateString,
                         "email":tfEmail.text!,
@@ -417,8 +442,12 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
     //MARK: Button Actions
     @IBAction func openSideMenu(_ sender: Any) {
         if isEdited == true{
-            isEdited = false
-              self.updateUser()
+              isEdited = false
+            if tfDatePicker.text! == "" || (tfDatePicker.text?.isEmpty)!{
+                AppManager.showMessageView(view: self.view, meassage: "Please update your date of birthday")
+            }else{
+               self.updateUser()
+            }
         }
         else{
             if imageDict.keys.count < 3 {
@@ -758,9 +787,7 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
     // MARK:
     // MARK: - UILongPressGestureRecognizer Delegate
     func handleLongGesture(gesture: UILongPressGestureRecognizer) {
-        
         switch(gesture.state) {
-            
         case UIGestureRecognizerState.began:
             guard let selectedIndexPath = collectionImages.indexPathForItem(at: gesture.location(in: collectionImages)) else {
                 break
@@ -785,7 +812,6 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
                 return false
             }
             else{
-               
                 return true
             }
         }
@@ -793,6 +819,26 @@ class MeVC: UIViewController,PassSongData,UIImagePickerControllerDelegate,UINavi
             return true
         }
     }
+    
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        
+        let toolBar : UIToolbar = UIToolbar.init(frame: CGRect.init(x: 0, y: 0, width: UIScreen.main.bounds.size.width, height: 44))
+        
+        let flexBarButton : UIBarButtonItem = UIBarButtonItem.init(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+
+        let doneBarButton : UIBarButtonItem = UIBarButtonItem.init(barButtonSystemItem: .done, target: self, action: #selector(self.donePressed))
+        
+        toolBar.items = [flexBarButton,doneBarButton]
+        
+        textField.inputAccessoryView = toolBar
+        
+        return true
+    }
+    
+    func donePressed() {
+       self.view.endEditing(true)
+    }
+    
     
     //MARK:
     //MARK:Date  Methods

@@ -13,8 +13,8 @@ class MenuVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
 
     @IBOutlet var tblMenu: UITableView!
     var selectedMenuItem : Int = 0
-    let arrayImages = ["Home","Me","My Chat","Collab with","Settings","Invite Friends","Logout"]
-    let arraySelectedImage = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1","Logout1"]
+    var arrayImages = ["Home","Me","My Chat","Collab with","Settings","Invite Friends","Logout"]
+    var arraySelectedImage = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1","Logout1"]
     @IBOutlet var ivUserImage: UIImageView!
     @IBOutlet var lblUserFullName: UILabel!    
     
@@ -49,6 +49,16 @@ class MenuVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
         ivUserImage.clipsToBounds = true
         
         NotificationCenter.default.addObserver(self, selector: #selector(self.upadteImage), name: NSNotification.Name(rawValue: "updateProfilePic"), object: nil)
+        
+        if UserDefaults.standard.bool(forKey: "friends_count"){
+             arrayImages = ["Home","Me","My Chat","Collab with","Settings","Invite Friends","Logout"]
+             arraySelectedImage = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1","Logout1"]
+        }else{
+             arrayImages = ["Home","Me","Collab with","Settings","Invite Friends","Logout"]
+             arraySelectedImage = ["Home1","Me1","Collab with1","Settings1","Invite Friends1","Logout1"]
+        }
+        
+        self.tblMenu.reloadData()
         
     }
     override func didReceiveMemoryWarning() {
@@ -149,22 +159,26 @@ class MenuVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
     
      func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        let cell = tblMenu.cellForRow(at: indexPath) as! SideMenuCell
-        cell.lblMenu.textColor = GOLDEN_COLOR
-        cell.ivIcon.image = UIImage.init(named: arraySelectedImage[indexPath.row])
+       
+        
+        
+        if UserDefaults.standard.bool(forKey: "friends_count"){
+            let cell = tblMenu.cellForRow(at: indexPath) as! SideMenuCell
+            cell.lblMenu.textColor = GOLDEN_COLOR
+            cell.ivIcon.image = UIImage.init(named: arraySelectedImage[indexPath.row])
             switch (indexPath.row) {
             case 0:
                 let homeVC = self.storyboard?.instantiateViewController(withIdentifier: "HomeVC") as! HomeVC
                 let navigationController = UINavigationController.init(rootViewController: homeVC)
                 self.menuContainerViewController.centerViewController = navigationController
                 self.menuContainerViewController.menuState = MFSideMenuStateClosed;
-                 break
+                break
             case 1:
                 let meVC = self.storyboard?.instantiateViewController(withIdentifier: "MeVC") as! MeVC
                 let navigationController = UINavigationController.init(rootViewController: meVC)
                 self.menuContainerViewController.centerViewController = navigationController
-                 meVC.outSideController = "no"
-                 self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                meVC.outSideController = "no"
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
                 break
             case 2:
                 let myChatVc = self.storyboard?.instantiateViewController(withIdentifier: "ChatController") as! ChatController
@@ -178,16 +192,16 @@ class MenuVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
                 let collabWithVC = self.storyboard?.instantiateViewController(withIdentifier: "CollabWithVC") as! CollabWithVC
                 let navigationController = UINavigationController.init(rootViewController: collabWithVC)
                 self.menuContainerViewController.centerViewController = navigationController
-
+                
                 self.menuContainerViewController.menuState = MFSideMenuStateClosed;
                 break
             case 4:
                 let catagoryVC = self.storyboard?.instantiateViewController(withIdentifier: "CatagoryVC") as! CatagoryVC
-                 catagoryVC.isInternalController = "no"
+                catagoryVC.isInternalController = "no"
                 let navigationController = UINavigationController.init(rootViewController: catagoryVC)
                 self.menuContainerViewController.centerViewController = navigationController
                 
-
+                
                 self.menuContainerViewController.menuState = MFSideMenuStateClosed;
                 break
             case 5:
@@ -206,9 +220,79 @@ class MenuVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
                 })
                 alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { action in
                 })
-
+                
                 self.present(alert, animated: true, completion: nil)
-               
+                
+                break
+            default:
+                let homeVC = self.storyboard?.instantiateViewController(withIdentifier: "HomeVC") as! HomeVC
+                let navigationController = UINavigationController.init(rootViewController: homeVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+            }
+        }else{
+            let cell = tblMenu.cellForRow(at: indexPath) as! SideMenuCell
+            cell.lblMenu.textColor = GOLDEN_COLOR
+            cell.ivIcon.image = UIImage.init(named: arraySelectedImage[indexPath.row])
+            switch (indexPath.row) {
+            case 0:
+                let homeVC = self.storyboard?.instantiateViewController(withIdentifier: "HomeVC") as! HomeVC
+                let navigationController = UINavigationController.init(rootViewController: homeVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+            case 1:
+                let meVC = self.storyboard?.instantiateViewController(withIdentifier: "MeVC") as! MeVC
+                let navigationController = UINavigationController.init(rootViewController: meVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                meVC.outSideController = "no"
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+            case 12:
+                let myChatVc = self.storyboard?.instantiateViewController(withIdentifier: "ChatController") as! ChatController
+                let homeVC = self.storyboard?.instantiateViewController(withIdentifier: "HomeVC") as! HomeVC
+                let navigationController = UINavigationController.init(rootViewController: homeVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                navigationController.pushViewController(myChatVc, animated: true)
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+            case 2:
+                let collabWithVC = self.storyboard?.instantiateViewController(withIdentifier: "CollabWithVC") as! CollabWithVC
+                let navigationController = UINavigationController.init(rootViewController: collabWithVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+            case 3:
+                let catagoryVC = self.storyboard?.instantiateViewController(withIdentifier: "CatagoryVC") as! CatagoryVC
+                catagoryVC.isInternalController = "no"
+                let navigationController = UINavigationController.init(rootViewController: catagoryVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                
+                
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+            case 4:
+                let inviteFriendsVC = self.storyboard?.instantiateViewController(withIdentifier: "InviteFriendsVC") as! InviteFriendsVC
+                inviteFriendsVC.isPopUp = "no"
+                let navigationController = UINavigationController.init(rootViewController: inviteFriendsVC)
+                self.menuContainerViewController.centerViewController = navigationController
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                break
+                
+            case 5:
+                self.menuContainerViewController.menuState = MFSideMenuStateClosed;
+                let alert = UIAlertController(title: "Collab", message: "Are you sure you want to log out?", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Logout", style: .default) { action in
+                    self.logOut()
+                })
+                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { action in
+                })
+                
+                self.present(alert, animated: true, completion: nil)
+                
                 break
             default:
                 let homeVC = self.storyboard?.instantiateViewController(withIdentifier: "HomeVC") as! HomeVC
@@ -219,6 +303,8 @@ class MenuVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
                 break
             }
         }
+        
+}
     
     func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath){
         let cell = tblMenu.cellForRow(at: indexPath) as! SideMenuCell

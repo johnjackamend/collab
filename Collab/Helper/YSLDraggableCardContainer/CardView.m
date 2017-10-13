@@ -40,9 +40,9 @@
 - (void)setup
 {
     UICollectionViewFlowLayout* flowLayout = [[UICollectionViewFlowLayout alloc] init];
-    flowLayout.itemSize = CGSizeMake(self.frame.size.width, self.frame.size.height);
+    flowLayout.itemSize = CGSizeMake([[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.width);
     [flowLayout setScrollDirection:UICollectionViewScrollDirectionVertical];
-    _collectionImages = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height) collectionViewLayout:flowLayout];
+    _collectionImages = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.width) collectionViewLayout:flowLayout];
     [_collectionImages registerClass:[UICollectionViewCell class] forCellWithReuseIdentifier:@"cell"];
     _collectionImages.dataSource = self;
     _collectionImages.delegate = self;
@@ -80,7 +80,7 @@
     _imageView = [[UIImageView alloc]init];
     _imageView.backgroundColor = [UIColor lightGrayColor];
     _imageView.contentMode = UIViewContentModeScaleAspectFill;
-    _imageView.frame = CGRectMake(0, 0, self.frame.size.width, self.frame.size.height );
+    _imageView.frame = CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.width );
     NSURL *imageUrl = [NSURL URLWithString:[_imagesArrayLocal objectAtIndex:indexPath.item]];
     [_imageView sd_setImageWithURL:imageUrl];
     [cell.contentView addSubview:_imageView];
@@ -93,7 +93,7 @@
 
 // Layout: Set cell size
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
-    CGSize mElementSize = CGSizeMake(self.window.bounds.size.width, self.window.bounds.size.height - 64);
+    CGSize mElementSize = CGSizeMake([[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.width);
     return mElementSize;
 }
 

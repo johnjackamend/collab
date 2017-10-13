@@ -101,21 +101,26 @@ class FullProfileVC: UIViewController,NPAudioStreamDelegate,CMPageControlDelegat
             print("json result \(jsonResult)")
             if jsonResult["success"] as! NSNumber   == 1{
                 let dataDict = jsonResult["data"] as! Dictionary<String, Any>
+                
                 let userDataDict = dataDict["app_users"] as! Dictionary<String, Any>
+                
                 self.lblUserName.text = userDataDict["full_name"] as? String
                 self.bioStr = (userDataDict["bio"] as? String)!
-                let cataDict = dataDict["music_industry"] as! Dictionary<String, Any>
-                let category1 = cataDict["Industry"]
-                let category2 = cataDict["Musician"]
-
-                if category1 != nil  &&  category2 != nil{
-                    self.lblCategory.text = "\(category1!) | \(category2!)"
+                
+                let userSettings = dataDict["user_settings"] as! Dictionary<String, Any>
+                
+                let cataDict = userSettings["music_industry"] as! String
+            
+                let musicIndustryArray:[String] = cataDict.components(separatedBy: ",")
+                
+                if musicIndustryArray.count >= 2 {
+                    self.lblCategory.text = "\(musicIndustryArray[0]) | \(musicIndustryArray[1])"
                 }
-                else if category2 != nil && category1 == nil {
-                    self.lblCategory.text = "\(category2!)"
+                else if musicIndustryArray.count == 1  {
+                    self.lblCategory.text = "\(musicIndustryArray[0])"
                 }
                 else{
-                    self.lblCategory.text = "\(category1!)"
+                    self.lblCategory.text = ""
                 }
                 self.btnOutletInsta.setTitle("@\(userDataDict["username"]!)", for: .normal)
 

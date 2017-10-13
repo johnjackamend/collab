@@ -23,6 +23,58 @@ class AppManager: NSObject  {
      class func isLogin() -> Bool {
         return UserDefaults.SFSDefault(boolForKey: kLoginStatus) ? true:false
     }
+    //MARK: Check permissions
+    func checkCameraStatus(view : UIViewController, headerString : String , messageString : String) -> Bool{
+        let cameraMediaType = AVMediaTypeVideo
+        let cameraAuthorizationStatus = AVCaptureDevice.authorizationStatus(forMediaType: cameraMediaType)
+
+        switch cameraAuthorizationStatus {
+        case .denied:
+            print("denied")
+             self.callAlert(view: view, headerString: headerString, messageString: messageString)
+            return false
+        case .authorized:
+            print("authorized")
+            return true
+        case .restricted:
+            print("restricted")
+            self.callAlert(view: view, headerString: headerString, messageString: messageString)
+            return false
+        case .notDetermined:
+            // Prompting user for the permission to use the camera.
+            AVCaptureDevice.requestAccess(forMediaType: cameraMediaType) { granted in
+                if granted {
+                    print("Granted access to \(cameraMediaType)")
+                } else {
+                    print("Denied access to \(cameraMediaType)")
+                    self.callAlert(view: view, headerString: headerString, messageString: messageString)
+                }
+            }
+            return true
+        }
+    }
+    func callAlert(view : UIViewController, headerString : String , messageString : String)  {
+        let alert: SCLAlertView = SCLAlertView()
+        alert.tintTopCircle = false
+        alert.customViewColor = GOLDEN_COLOR
+        alert.addButton("Settings", actionBlock: {
+            guard let settingsUrl = URL(string: UIApplicationOpenSettingsURLString)
+                else{
+                    return
+            }
+            if UIApplication.shared.canOpenURL(settingsUrl) {
+                if #available(iOS 10.0, *) {
+                    UIApplication.shared.open(settingsUrl, completionHandler: { (success) in
+                        print("Settings opened: \(success)") // Prints true
+                    })
+                } else {
+                    // Fallback on earlier versions
+                }
+            }
+        })
+        alert.showSuccess(view, title: headerString, subTitle: messageString, closeButtonTitle: "No Thanks", duration:  0.0)
+    }
+
     // MARK: showHud
     func showHud(showInView myView:UIView,label title:String){
         HUD = JKProgressHUD.showProgressHud(inView: myView, progressMode: .Indeterminate)

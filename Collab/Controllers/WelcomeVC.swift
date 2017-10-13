@@ -9,7 +9,7 @@
 import UIKit
 
 class WelcomeVC: UIViewController {
-
+    
     @IBOutlet var lblWelcome: UILabel!
     //MARK: View Life Cycle
     override func viewDidLoad() {

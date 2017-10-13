@@ -19,16 +19,29 @@ class CollabVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
 
 
 
-    let arrayMenu = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
-    let arrayIconUnselected = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
-    let arrayIconSelected = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1"]
-    let userData = UserDefaults.SFSDefault(valueForKey: "userInfo") as! Dictionary<String , Any>
+    var arrayMenu = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
+    var arrayIconUnselected = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
+    var arrayIconSelected = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1"]
+    
+    var userData = UserDefaults.SFSDefault(valueForKey: "userInfo") as! Dictionary<String , Any>
 
 
     //MARK: UIView Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        
+        if UserDefaults.standard.bool(forKey: "friends_count"){
+            arrayMenu = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
+            arrayIconUnselected = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
+            arrayIconSelected = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1"]
+        }else{
+            arrayMenu = ["Home","Me","Collab with","Settings","Invite Friends"]
+            arrayIconUnselected = ["Home","Me","Collab with","Settings","Invite Friends"]
+            arrayIconSelected = ["Home1","Me1","Collab with1","Settings1","Invite Friends1"]
+        }
+        
+        self.tblSideMenu.reloadData()
 
 
 //        print(userData)
@@ -42,6 +55,23 @@ class CollabVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
 //
 //        self.view .addSubview(sideMenuView)
 //        self.navigationController?.navigationBar.isHidden = true
+    }
+    
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        if UserDefaults.standard.bool(forKey: "friends_count"){
+             arrayMenu = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
+             arrayIconUnselected = ["Home","Me","My Chat","Collab with","Settings","Invite Friends"]
+             arrayIconSelected = ["Home1","Me1","My Chat1","Collab with1","Settings1","Invite Friends1"]
+        }else{
+             arrayMenu = ["Home","Me","Collab with","Settings","Invite Friends"]
+             arrayIconUnselected = ["Home","Me","Collab with","Settings","Invite Friends"]
+             arrayIconSelected = ["Home1","Me1","Collab with1","Settings1","Invite Friends1"]
+        }
+        
+        self.tblSideMenu.reloadData()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -96,8 +126,6 @@ class CollabVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
         let backgroundView = UIView()
         backgroundView.backgroundColor = UIColor.clear
         cell.selectedBackgroundView = backgroundView
-
-
         return cell
     }
 
@@ -106,7 +134,6 @@ class CollabVC: UIViewController,UITableViewDelegate,UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let cell = tblSideMenu.cellForRow(at: indexPath) as! SideMenuCell
-
         cell.lblMenu.textColor = GOLDEN_COLOR
         cell.ivIcon.image = UIImage.init(named: arrayIconSelected[indexPath.row])
 

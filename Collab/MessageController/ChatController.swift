@@ -25,7 +25,7 @@ class ChatController: UIViewController, UITableViewDataSource, UITableViewDelega
 
     override func viewDidLoad() {
         super.viewDidLoad()
-         filterCellArray = ["Unread","Recent","Favs"]
+         //filterCellArray = ["Unread","Recent","Favs"]
         tfSearch.delegate = self
         isSearchOn = false
     }
@@ -39,8 +39,6 @@ class ChatController: UIViewController, UITableViewDataSource, UITableViewDelega
             UserDefaults.SFSDefault(setBool: false, forKey: "isNotification")
             let controller = self.storyboard?.instantiateViewController(withIdentifier: "messageController") as! MessageController
             controller.chat = chatModel
-
-
             self.navigationController?.pushViewController(controller, animated: false)
         }
         else{
@@ -195,10 +193,8 @@ class ChatController: UIViewController, UITableViewDataSource, UITableViewDelega
                 print(allKeys)
                 for key: String in allKeys {
                     if self.friendIds.contains(Int(key)!) == true{
-
                         print(self.friendIds);
                         print(key)
-
                     }else{
 
                     }
@@ -239,11 +235,7 @@ class ChatController: UIViewController, UITableViewDataSource, UITableViewDelega
     }
 
 
-    // MARK - TableViewDataSource
-
-
-
-
+    // MARK: - TableViewDataSource
     func numberOfSections(in tableView: UITableView) -> Int {
         return 2
     }
@@ -414,15 +406,14 @@ class ChatController: UIViewController, UITableViewDataSource, UITableViewDelega
     @IBAction func filterChatAction(_ sender: UIButton) {
         if sender.isSelected == true {
             sender.isSelected = false
-            filterCellArray = ["Unread","Recent","Favs"]
+            filterCellArray.removeAll()
             tableView.beginUpdates()
             tableView.reloadSections(IndexSet.init(integer: 0), with: .none)
             tableView.endUpdates()
-
         }
         else{
             sender.isSelected = true
-            filterCellArray.removeAll()
+            filterCellArray = ["Unread","Recent","Favs"]
             tableView.beginUpdates()
             tableView.reloadSections(IndexSet.init(integer: 0), with: .none)
             tableView.endUpdates()

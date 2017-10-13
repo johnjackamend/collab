@@ -8,13 +8,12 @@
 
 import UIKit
 import Firebase
+import CoreLocation
 
 class InstaLoginVC: UIViewController,UIWebViewDelegate {
     @IBOutlet weak var instaWebView: UIWebView!
-    let lat = AppDelegate.sharedDelegate.userlocation.coordinate.latitude
-    let long =  AppDelegate.sharedDelegate.userlocation.coordinate.longitude
-    var parametrs = NSMutableDictionary()
 
+    var parametrs = NSMutableDictionary()
 
 
     // MARK:
@@ -144,8 +143,21 @@ class InstaLoginVC: UIViewController,UIWebViewDelegate {
     func loginWithInsta(dataDict : NSDictionary)  {
         AppManager.sharedInstance.showHud(showInView: self.view, label: "Logging you in....")
         let instaLink = String(format:"https://www.instagram.com/%@",String(describing: dataDict["username"]!))
+        let urlImage  = dataDict["profile_picture"] as! String
+        let stringToBeRemoved = "s150x150"
+        let imageURl = urlImage.replacingOccurrences(of: stringToBeRemoved, with: "")
+        var lat = String()
+        var long = String()
 
+        let myLocation = CLLocation(latitude: AppDelegate.sharedDelegate.userlocation.coordinate.latitude, longitude: AppDelegate.sharedDelegate.userlocation.coordinate.longitude)
 
+        if AppDelegate.sharedDelegate.userlocation.coordinate.latitude == 0.0 && AppDelegate.sharedDelegate.userlocation.coordinate.longitude == 0.0 {
+            lat = ""
+            long = ""
+        } else {
+            lat = "\(AppDelegate.sharedDelegate.userlocation.coordinate.latitude )"
+            long = "\(AppDelegate.sharedDelegate.userlocation.coordinate.longitude )"
+        }
         let para  = ["signup_type":"instagram",
                      "instagram_id": dataDict["id"]!,
                      "full_name":dataDict["full_name"]!,
@@ -156,7 +168,8 @@ class InstaLoginVC: UIViewController,UIWebViewDelegate {
                      "lng":long,
                      "device_token":"123",
                      "device_type":"iOS",
-                     "profile_pic":dataDict["profile_picture"] ?? "www.google.com"]
+                     "profile_pic":imageURl
+        ]
 
         let url = "\(BASE_URL)signup"
 
@@ -177,19 +190,14 @@ class InstaLoginVC: UIViewController,UIWebViewDelegate {
                 self.registerUserOnFirebase(userData: userInfo);
                 if jsonResult["new_user"] as! NSNumber == 0{
                     AppDelegate.sharedDelegate.moveToFeedVC(index: 0)
+                    UserDefaults.SFSDefault(setBool: false, forKey: kIsFirstTime)
                 }
                 else{
+                    UserDefaults.SFSDefault(setBool: true, forKey: kIsFirstTime)
                     let catagoryVC = self.storyboard?.instantiateViewController(withIdentifier: "CatagoryVC") as! CatagoryVC
                     catagoryVC.isInternalController = "yes"
                     self.navigationController?.pushViewController(catagoryVC, animated: true)
-                    //                    let alert = UIAlertController(title: "Collab", message: "The collab app wants to access your Instagram followers to show mutual followers. \nIf you don’t allow to access your followers, you won’t be able to view other people’s mutual followers.", preferredStyle: .alert)
-                    //                    alert.addAction(UIAlertAction(title: "Allow", style: .default) { action in
-                    //
-                    //                        ///hit api
-                    //                    })
-                    //                    alert.addAction(UIAlertAction(title: "Decline", style: .cancel) { action in
-                    //                    })
-                    //                    self.present(alert, animated: true, completion: nil)
+                
                 }
             }
 
@@ -214,8 +222,8 @@ class InstaLoginVC: UIViewController,UIWebViewDelegate {
             storage.deleteCookie(cookie)
             // }
         }
-        
-        
+
+
         //        if let cookies = HTTPCookieStorage.shared.cookies {
         //            for cookie in storage.cookies! {
         //                let domainName = cookie.domain

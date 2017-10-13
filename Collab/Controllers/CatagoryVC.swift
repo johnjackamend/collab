@@ -7,9 +7,12 @@
 //
 
 import UIKit
+import Firebase
 
 class CatagoryVC: UIViewController {
-    
+
+    @IBOutlet weak var lblChoose: UILabel!
+    @IBOutlet weak var lblWhat: UILabel!
     @IBOutlet weak var tblCat: UITableView!
     @IBOutlet weak var lblNotifications: UILabel!
     @IBOutlet weak var outletSwitch: UISwitch!
@@ -20,7 +23,10 @@ class CatagoryVC: UIViewController {
     @IBOutlet weak var btnTerms: UIButton!
     @IBOutlet var outletBtnNext: UIButton!
     @IBOutlet weak var viewTopContsraint: NSLayoutConstraint!
-    let arrayCatagory: [String] = ["Blogger","Singer","Publicity","Rapper","Management", "Producer", "Booking", "DJ","Radio","Dancer","Musician","Other"]
+    let arrayCatagory: [String] = ["Musician","Model","Video","Acting","Photography", "Producer", "Visual artist", "Writer","Performer","Management","Dancer","GFX desginer"]
+    
+    let arrayCatagoryServer = NSMutableArray()
+    
     let parameters = NSMutableDictionary()
     let arrayMusician = NSMutableArray()
     let arrayIndustry = NSMutableArray()
@@ -28,28 +34,42 @@ class CatagoryVC: UIViewController {
     var index2 = NSIndexPath()
     var isInternalController = NSString()
     
+    var hideDeleteButton = false
+
     @IBOutlet var lblChooseMax: UILabel!
     @IBOutlet weak var navView: UIView!
-    
-    
+
+    @IBOutlet weak var btnDelete: UIButton!
+
     //MARK:
     //MARK: UIView Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.navigationController?.navigationBar.isHidden = true
-//        lblWhatDoYou.calculateFontSizeAccordingToWidth(labelFrame: lblWhatDoYou.frame)
-//        lblChooseMax.calculateFontSizeAccordingToWidth(labelFrame: lblChooseMax.frame)
-        
-        
-        if isInternalController == "yes" {
-            TYPE_CONTROLLER = controllerType.internalController
-
+        print(UIDevice.current.localizedModel)
+        if DeviceType.IS_IPHONE_5 {
         }
         else{
+            lblWhat.adjustsFontSizeToFitWidth = true
+            lblChoose.adjustsFontSizeToFitWidth = true
+        }
+
+        self.navigationController?.navigationBar.isHidden = true
+        if UserDefaults.SFSDefault(boolForKey: "isNotificationOff") == true{
+            outletSwitch.isOn = false
+        }
+        else{
+            outletSwitch.isOn = true
+        }
+        if isInternalController == "yes" {
+            TYPE_CONTROLLER = controllerType.internalController
+            btnDelete.isHidden = true
+        }
+        else{
+            btnDelete.isHidden = false
             TYPE_CONTROLLER = controllerType.externalController
-                   }
+        }
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(true)
         if TYPE_CONTROLLER == controllerType.internalController {
@@ -62,7 +82,7 @@ class CatagoryVC: UIViewController {
             self.view.updateConstraints()
             outletSideMenuBtn.isHidden = true
             btnTerms.isHidden = false
-             navView.isHidden = true
+            navView.isHidden = true
         }
         else{
             self.getUserSettings()
@@ -72,7 +92,7 @@ class CatagoryVC: UIViewController {
             outletBtnNext.addTarget(self, action: #selector(self.nextAction(_:)), for: .touchUpInside)
             lblNotifications.isHidden = false
             outletSwitch.isHidden = false
-            viewBottomConstraint.constant =  viewBottomConstraint.constant - 25
+            //viewBottomConstraint.constant =  viewBottomConstraint.constant - 25
             self.view.updateConstraints()
             outletSideMenuBtn.isHidden = false
             btnTerms.isHidden = true
@@ -82,115 +102,198 @@ class CatagoryVC: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-    
+
     //MARK:
     //MARK: UITableView Datasource Methods
-    
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return arrayCatagory.count/2
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAtIndexPath indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "catagoryCell", for: indexPath) as! CatagoryCell
-        
+
         cell.lblCat1.text = arrayCatagory[indexPath.row * 2] as String
         cell.lblCat2.text = arrayCatagory[indexPath.row * 2 + 1] as String
-        
-        cell.lblCat1.calculateFontSizeAccordingToWidth(labelFrame: cell.lblCat1.frame)
-        cell.lblCat2.calculateFontSizeAccordingToWidth(labelFrame: cell.lblCat2.frame)
-        
+
+//        cell.lblCat1.calculateFontSizeAccordingToWidth(labelFrame: cell.lblCat1.frame)
+//        cell.lblCat2.calculateFontSizeAccordingToWidth(labelFrame: cell.lblCat2.frame)
+
         cell.btnCat1.addTarget(self, action: #selector(self.addToIndustryAction(_ :)), for: .touchUpInside)
         cell.btnCat2.addTarget(self, action: #selector(self.addToMusicianAction(_ :)), for: .touchUpInside)
-        
+
         cell.btnCat1.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
         cell.btnCat2.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
         
+        cell.btnCat1.isSelected = false
+        cell.btnCat2.isSelected = false
+        
+        
+        
+        let stringValueLocal = cell.lblCat1.text!
+        let stringValueLocal2 = cell.lblCat2.text!
+        
+        for selectedIndustry in arrayCatagoryServer {
+            
+           let selectedIndustryLocal = selectedIndustry as! String
+            
+            if stringValueLocal == selectedIndustryLocal  {
+                cell.btnCat1.setImage(UIImage.init(named: "radio_sel"), for: .normal)
+                cell.btnCat1.isSelected = true
+            }
+            
+            if stringValueLocal2 == selectedIndustryLocal  {
+                cell.btnCat2.setImage(UIImage.init(named: "radio_sel"), for: .normal)
+                cell.btnCat2.isSelected = true
+            }
+        }
+        
+
+        /*
+        if arrayCatagoryServer.count > (indexPath.row * 2) {
+            let stringValueServer = arrayCatagoryServer[indexPath.row * 2] as! String
+            
+            var stringValueServer2 = ""
+            if arrayCatagoryServer.count > ((indexPath.row * 2)+1) {
+              stringValueServer2 = arrayCatagoryServer[indexPath.row * 2+1] as! String
+            }
+        
+            if stringValueLocal == stringValueServer  {
+                cell.btnCat1.setImage(UIImage.init(named: "radio_sel"), for: .normal)
+                cell.btnCat1.isSelected = true
+            }else{
+                cell.btnCat1.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
+                cell.btnCat1.isSelected = false
+                if stringValueLocal2 == stringValueServer {
+                    cell.btnCat2.setImage(UIImage.init(named: "radio_sel"), for: .normal)
+                    cell.btnCat2.isSelected = true
+                }else{
+                    cell.btnCat2.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
+                    cell.btnCat2.isSelected = false
+                }
+            }
+            //match two option
+            if stringValueLocal == stringValueServer2  {
+                cell.btnCat1.setImage(UIImage.init(named: "radio_sel"), for: .normal)
+                cell.btnCat1.isSelected = true
+            }else{
+                cell.btnCat1.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
+                cell.btnCat1.isSelected = false
+                if stringValueLocal2 == stringValueServer2 {
+                    cell.btnCat2.setImage(UIImage.init(named: "radio_sel"), for: .normal)
+                    cell.btnCat2.isSelected = true
+                }else{
+                    cell.btnCat2.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
+                    cell.btnCat2.isSelected = false
+                }
+            }
+ 
+            
+        } */
+      
         cell.btnCat1.tag = indexPath.row * 2 + 1
         cell.btnCat2.tag = indexPath.row * 2 + 2
         
         
+
+
         return cell
-        
+
     }
-    
+
     //MARK:
     //MARK: UITableView Delegate Methods
-    
+
     func tableView(_ tableView: UITableView, didSelectRowAtIndexPath indexPath: IndexPath) {
-        
-        
+
+
     }
     func tableView(_ tableView: UITableView, heightForRowAtIndexPath indexPath: IndexPath) -> CGFloat {
-        if DeviceType.IS_IPHONE_5 {
-            return 44.0
-        }
-        else{
-            return 44.0
-        }
+//        if DeviceType.IS_IPHONE_5 {
+//            return 44.0
+//        }
+//        else{
+//            return 60.0
+//        }
+        return 60.0
+        
     }
-    
+
     //MARK:
     //MARK: Webservices Methods
     func getUserSettings()  {
         AppManager.sharedInstance.showHud(showInView: self.view, label: "")
         let para = ["user_id": UserDefaults.SFSDefault(valueForKey: USER_ID)]
-        
+
         ServerManager.sharedInstance.httpPost(String(format:"%@get_user_settings",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
             AppManager.sharedInstance.hidHud()
             var jsonResult = response as! Dictionary<String, Any>
             print(jsonResult)
             if jsonResult["success"] as! NSNumber == 1{
                 let dict = jsonResult["data"]  as! Dictionary<String, Any>
-                
-                if dict["Industry"] != nil && dict["Musician"] != nil{
+
+                if dict["music_industry"] != nil{
+                    
+                    let stringMusic = dict["collab_with"] as! String
+                    
+                    let stringArray:[String] = stringMusic.components(separatedBy: ",")
+                    
+                    self.arrayCatagoryServer.addObjects(from: stringArray)
+                    
+                    /*
+                    
                     let index1 = self.arrayCatagory.index(of: dict["Industry"] as! String)
                     let indexPath1:NSIndexPath = IndexPath(row: index1! / 2, section: 0) as NSIndexPath
                     let cell1 = self.tblCat.cellForRow(at: indexPath1 as IndexPath) as! CatagoryCell
-                    
+
                     cell1.btnCat1.setImage(#imageLiteral(resourceName: "radio_sel"), for: .normal)
                     cell1.btnCat1.isSelected = true
                     self.arrayIndustry.add(dict["Industry"]!)
                     self.arrayMusician.add(dict["Musician"]!)
-                    
+
                     let index2 = self.arrayCatagory.index(of: dict["Musician"] as! String)
                     let indexPath2 = IndexPath(row: (index2! - 1) / 2, section: 0)
                     let cell2 = self.tblCat.cellForRow(at: indexPath2 as IndexPath) as! CatagoryCell
-                    
+
                     cell2.btnCat2.setImage(#imageLiteral(resourceName: "radio_sel"), for: .normal)
                     cell2.btnCat2.isSelected = true
+                */
+                    
+                    self.tblCat.reloadData()
 
                 }
-                else if dict["Industry"] != nil{
-                    self.arrayIndustry.add(dict["Industry"]!)
-                    let index1 = self.arrayCatagory.index(of: dict["Industry"] as! String)
-                    let indexPath1 = IndexPath(row: index1! / 2 , section: 0)
-                    let cell1 = self.tblCat.cellForRow(at: indexPath1 as IndexPath) as! CatagoryCell
-                    
-                    cell1.btnCat1.setImage(#imageLiteral(resourceName: "radio_sel"), for: .normal)
-                    cell1.btnCat1.isSelected = true
-                    
-                }
-                else{
-                    self.arrayMusician.add(dict["Musician"]!)
-                    let index2 = self.arrayCatagory.index(of: dict["Musician"] as! String)
-                    let indexPath2 = IndexPath(row:(index2! - 1) / 2 , section: 0)
-                    let cell2 = self.tblCat.cellForRow(at: indexPath2 as IndexPath) as! CatagoryCell
-                    
-                    cell2.btnCat2.setImage(#imageLiteral(resourceName: "radio_sel"), for: .normal)
-                    cell2.btnCat2.isSelected = true
-                    
-                }
+//                else if dict["Industry"] != nil{
+//                    self.arrayIndustry.add(dict["Industry"]!)
+//                    let index1 = self.arrayCatagory.index(of: dict["Industry"] as! String)
+//                    let indexPath1 = IndexPath(row: index1! / 2 , section: 0)
+//                    let cell1 = self.tblCat.cellForRow(at: indexPath1 as IndexPath) as! CatagoryCell
+//
+//                    cell1.btnCat1.setImage(#imageLiteral(resourceName: "radio_sel"), for: .normal)
+//                    cell1.btnCat1.isSelected = true
+//
+//                }
+//                else{
+//                    self.arrayMusician.add(dict["Musician"]!)
+//                    let index2 = self.arrayCatagory.index(of: dict["Musician"] as! String)
+//                    let indexPath2 = IndexPath(row:(index2! - 1) / 2 , section: 0)
+//                    let cell2 = self.tblCat.cellForRow(at: indexPath2 as IndexPath) as! CatagoryCell
+//
+//                    cell2.btnCat2.setImage(#imageLiteral(resourceName: "radio_sel"), for: .normal)
+//                    cell2.btnCat2.isSelected = true
+//
+//                }
             }
         }) { (error) in
             AppManager.sharedInstance.hidHud()
             AppManager.showMessageView(view: self.view, meassage: error.description)
         }
-        
+
     }
-    
+
     func addIndustyOfUser(industry:String, type: String)  {
         AppManager.sharedInstance.showHud(showInView: self.view, label: "")
-        let para = ["user_id": UserDefaults.SFSDefault(valueForKey: USER_ID),"industry_name":industry,"type":type]
+        let para = ["user_id": UserDefaults.SFSDefault(valueForKey: USER_ID),"industry_name":industry]
+    
         ServerManager.sharedInstance.httpPost(String(format:"%@add_industry",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
             AppManager.sharedInstance.hidHud()
             var jsonResult = response as! Dictionary<String, Any>
@@ -200,7 +303,6 @@ class CatagoryVC: UIViewController {
                     let meVC = self.storyboard?.instantiateViewController(withIdentifier: "MeVC") as! MeVC
                     meVC.outSideController = "yes"
                     self.navigationController?.pushViewController(meVC, animated: true)
-                    
                 }
                 else{
                     AppManager.showMessageView(view: self.view, meassage: jsonResult["success_message"] as! String)
@@ -210,49 +312,67 @@ class CatagoryVC: UIViewController {
             AppManager.sharedInstance.hidHud()
             AppManager.showMessageView(view: self.view, meassage: error.description)
         }
-        
+
     }
-    
-    
+
+    func updateUserDataOnFirebase(playerId:String) {
+        let ref : DatabaseReference!
+        ref = Database.database().reference()
+        let refChild = ref.child("users")
+        let refChatID = refChild.child(UserDefaults.SFSDefault(valueForKey: "user_id") as! String )
+
+        var profilePic = Dictionary<String, String>()
+        profilePic["player_id"] = playerId
+        refChatID.updateChildValues(profilePic)
+
+    }
+
     //MARK:
     //MARK: Button tap Actions
-    
+
     @IBAction func switchAction(_ sender: Any) {
+        if UserDefaults.SFSDefault(boolForKey: "isNotificationOff") == true{
+            self.updateUserDataOnFirebase(playerId: "")
+            UserDefaults.SFSDefault(setBool: false, forKey: "isNotificationOff")
+        }
+        else{
+            let playerID: String = UserDefaults.SFSDefault(valueForKey: "player_id") as? String ?? ""
+            self.updateUserDataOnFirebase(playerId: playerID)
+            UserDefaults.SFSDefault(setBool: true, forKey: "isNotificationOff")
+        }
     }
     func addToIndustryAction(_ sender :UIButton)  {
         let indexPath:NSIndexPath = IndexPath(row: sender.tag - 1, section: 0) as NSIndexPath
-        
-        
         if sender.isSelected {
-            arrayIndustry.remove(arrayCatagory[indexPath.row])
+            arrayCatagoryServer.remove(arrayCatagory[indexPath.row])
             sender.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
             sender.isSelected = false
         }
         else{
-            if arrayIndustry.count + arrayMusician.count < 2 {
-                arrayIndustry.add(arrayCatagory[indexPath.row])
+            if arrayCatagoryServer.count  < 2 {
+                arrayCatagoryServer.add(arrayCatagory[indexPath.row])
                 sender.setImage(UIImage.init(named: "radio_sel"), for: .normal)
                 sender.isSelected = true
             }
             else{
                 AppManager.showMessageView(view: self.view, meassage: "You can only choose a maximum of 2 :)")
             }
-            
+
         }
-        
+
     }
     func addToMusicianAction(_ sender :UIButton)  {
         let indexPath:NSIndexPath = IndexPath(row: sender.tag - 2, section: 0) as NSIndexPath
-        
+
         if sender.isSelected {
-            arrayMusician.remove(arrayCatagory[indexPath.row + 1] )
+            arrayCatagoryServer.remove(arrayCatagory[indexPath.row + 1] )
             sender.setImage(UIImage.init(named: "radio_unsel"), for: .normal)
             sender.isSelected = false
-            
+
         }
         else{
-            if arrayIndustry.count + arrayMusician.count < 2 {
-                arrayMusician.add(arrayCatagory[indexPath.row + 1])
+            if arrayCatagoryServer.count < 2 {
+                arrayCatagoryServer.add(arrayCatagory[indexPath.row + 1])
                 sender.setImage(UIImage.init(named: "radio_sel"), for: .normal)
                 sender.isSelected = true
             }
@@ -262,30 +382,22 @@ class CatagoryVC: UIViewController {
         }
     }
     func saveAction(_ sender: Any)  {
-        
+
     }
-    
+
     func nextAction(_ sender: Any) {
         var typeStr = NSString()
         var industryStr = NSString()
-        
-        if arrayIndustry.count == 2 {
-            typeStr = "Industry,Industry"
-            industryStr = arrayIndustry.componentsJoined(by: ",")  as NSString
+
+        if arrayCatagoryServer.count == 2 {
+            typeStr = ""
+            industryStr = arrayCatagoryServer.componentsJoined(by: ",")  as NSString
         }
-        else if arrayMusician.count == 2{
-            typeStr = "Musician,Musician"
-            industryStr =  arrayMusician.componentsJoined(by: ",") as NSString
+        else if arrayCatagoryServer.count == 1{
+            typeStr = ""
+            industryStr =  arrayCatagoryServer[0] as! NSString
         }
-        else if arrayIndustry.count + arrayMusician.count == 2 {
-            typeStr = "Industry,Musician"
-            industryStr = "\(arrayIndustry[0]),\(arrayMusician[0])" as NSString
-        }
-        else if  arrayIndustry.count == 1 {
-            typeStr = "Industry"
-            industryStr = arrayIndustry[0] as! NSString
-        }
-        else if arrayIndustry.count == 0 && arrayMusician.count == 0{
+        else if arrayCatagoryServer.count == 0 {
             
             AppManager.showMessageView(view: self.view, meassage: "Please choose atleast one job title :)")
             return
@@ -301,4 +413,7 @@ class CatagoryVC: UIViewController {
         self.menuContainerViewController.toggleLeftSideMenuCompletion {
         }
     }
-  }
+    
+    @IBOutlet weak var btnDeleteAction: UIButton!
+    
+}

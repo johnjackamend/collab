@@ -31,6 +31,18 @@ let INSTA_URL = "https://api.instagram.com/oauth/authorize/?"
 let I_USER_DATA = "instaUserData"
 let I_USER_ID = "instaUserID"
 let USER_ID = "user_id"
+let SOUND_CLOUD_CLIENT_ID = "355503a68ddc02f17cb5d10afdf7548e"
+
+
+
+let DENIED_LOCATION_HEADER = "You denied location permissions";
+let DENIED_LOCATION_MESSAGE = "To use all the features of the application you need allow the location permission. Please turn on location from your settings."
+
+let DENIED_GALLRY_HEADER = "You denied gallary permissions";
+let DENIED_GALLRY_MESSAGE = "To use all the features of the application you need allow the camera/gallary permission. Please turn on this permission from your settings."
+let kLocationIsOff = "isLocationOff"
+
+
 let GOLDEN_COLOR =  UIColor(red: 192.0/255.0, green: 135.0/255.0, blue: 51.0/255.0, alpha: 1.0)
 
 struct Platform {

@@ -16,6 +16,7 @@ class SearchMusicVC: UIViewController,UISearchBarDelegate,UITableViewDelegate,UI
 
     var delegate:PassSongData?
 
+    @IBOutlet weak var lblMessage: UILabel!
     @IBOutlet weak var noResultsView: UIView!
     @IBOutlet weak var musicSearchBar: UISearchBar!
     @IBOutlet weak var tblSearchResults: UITableView!
@@ -26,6 +27,10 @@ class SearchMusicVC: UIViewController,UISearchBarDelegate,UITableViewDelegate,UI
         super.viewDidLoad()
         musicSearchBar.delegate = self
 
+        
+        tblSearchResults.isHidden = true
+//        lblMessage.adjustsFontSizeToFitWidth = true
+        
         tblSearchResults.delegate = self
         tblSearchResults.dataSource = self
         tblSearchResults.isHidden = true
@@ -82,6 +87,8 @@ class SearchMusicVC: UIViewController,UISearchBarDelegate,UITableViewDelegate,UI
             DispatchQueue.main.async {
                 print(self.searchArray)
                 if self.searchArray.count != 0{
+                    self.tblSearchResults.isHidden = false
+                    self.lblMessage.isHidden = true
                     self.tblSearchResults.isHidden = false
                     AppManager.sharedInstance.hidHud()
                     self.tblSearchResults.reloadData()
@@ -145,7 +152,15 @@ class SearchMusicVC: UIViewController,UISearchBarDelegate,UITableViewDelegate,UI
                    shouldChangeTextIn range: NSRange,
                    replacementText text: String) -> Bool{
         let searchTerm = NSString(string: searchBar.text!).replacingCharacters(in: range, with: text)
-        self.searchMusic(searchStr: searchTerm as NSString)
+        
+        if searchTerm.characters.count > 0 {
+            self.searchMusic(searchStr: searchTerm as NSString)
+        }else{
+            self.tblSearchResults.isHidden = true
+            self.lblMessage.isHidden = false
+        }
+        
+        
         return true
 
     }

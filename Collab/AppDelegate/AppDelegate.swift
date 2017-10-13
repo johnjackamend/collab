@@ -20,10 +20,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate,CLLocationManagerDelegate,
 
     //MARK: Properties
     var window: UIWindow?
-    var locationManager:CLLocationManager!
-    var userlocation : CLLocation!
+    var locationManager = CLLocationManager()
+    var userlocation = CLLocation()
+
     var locationStatus : NSString = "Not Started"
     var storeCurrntClass = [String]()
+ 
 
 
     //MARK: AppDelegate Methods
@@ -64,6 +66,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate,CLLocationManagerDelegate,
         if UserDefaults.SFSDefault(boolForKey: "isLogin") == true {
             AppDelegate.sharedDelegate.moveToFeedVC(index: 0)
         }
+        if UserDefaults.SFSDefault(boolForKey: "isFirstTime") == true{
+        }
         return true
     }
 
@@ -91,11 +95,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate,CLLocationManagerDelegate,
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         userlocation = manager.location!
         print("locations = \(userlocation.coordinate.latitude) \(userlocation.coordinate.longitude)")
+        if UserDefaults.SFSDefault(boolForKey: kLocationIsOff) == true {
+            if let _ : String? = UserDefaults.SFSDefault(valueForKey: "user_id") as! String
+            {
+               self.updateLocation()
+            }
+        }
+        else{
+           self.locationManager.stopUpdatingLocation()
+        }
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         FBSDKAppEvents.activateApp()
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Restart any tasks that                                                                                                                                                                                                                                            were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -301,8 +314,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate,CLLocationManagerDelegate,
             locationManager.startUpdatingLocation() // start location manager
             if Version.IS_OS_8_OR_LATER{
                 if locationManager.responds(to:#selector(CLLocationManager.requestWhenInUseAuthorization)){
-                    //  locationManager.requestWhenInUseAuthorization()
-                    //locationManager.requestAlwaysAuthorization()
                     locationManager.requestWhenInUseAuthorization()
                 }else
                 {
@@ -344,4 +355,27 @@ extension AppDelegate:UNUserNotificationCenterDelegate{
         }
 
     }
+    func updateLocation() {
+        let para: Dictionary = ["user_id":UserDefaults.SFSDefault(valueForKey: "user_id"),
+                                "lat" :userlocation.coordinate.latitude,
+                                "lng" : userlocation.coordinate.longitude]
+        ServerManager.sharedInstance.httpPost(String(format:"%@update_user_lat_lng",BASE_URL), postParams: para, SuccessHandle: { (response, url) in
+            
+            self.locationManager.stopUpdatingLocation()
+            
+            var jsonResult = response as! Dictionary<String, Any>
+            print(jsonResult)
+            if jsonResult["success"] as! NSNumber == 1{
+                let mainStoryboard: UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
+                let home = mainStoryboard.instantiateViewController(withIdentifier: "HomeVC") as! HomeVC
+                home.getFilteredData(distanceInt: 0)
+            }
+            else{
+            }
+        }) { (error) in
+
+            self.locationManager.stopUpdatingLocation()
+        }
+    }
+
 }
